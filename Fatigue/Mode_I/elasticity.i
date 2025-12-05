@@ -63,18 +63,33 @@ l = 0.004
 
 [Variables]
   [disp_x]
+    initial_condition = 0
   []
   [disp_y]
+    initial_condition=0
   []
 []
 
 [AuxVariables]
   [d]
   []
-  [alpha_bar_init]
+  # [alpha_bar_init]
+  #   order = CONSTANT
+  #   family = MONOMIAL
+  # []
+  [alpha_bar_avg]
     order = CONSTANT
     family = MONOMIAL
+    # outputs = csv
   []
+  # [f_init]
+  #   order = CONSTANT
+  #   family = MONOMIAL
+  # []
+  # [f_avg]
+  #   order = CONSTANT
+  #   family = MONOMIAL
+  # []
 []
 
 [Kernels]
@@ -90,15 +105,38 @@ l = 0.004
   []
 []
 
+[AuxKernels]
+  [alpha_bar_avg]
+    type = ADMaterialRealAux
+    variable = alpha_bar_avg
+    property = alpha_bar
+  []
+  # [f_avg]
+  #   type = ADMaterialRealAux
+  #   variable = f_avg
+  #   property = f
+  # []
+[]
+
 [Functions]
   [base_u_t]
     type = PiecewiseLinear
-    x = '0 2e-6 6e-6 8e-6'
-    y = '0 2e-3 -2e-3 0'
+    x = '0 2e-6 4e-6 6e-6 8e-6'
+    y = '0 2e-3 0 -2e-3 0'
   []
   [periodic_u_t]
     type = PeriodicFunction
     base_function = base_u_t
+    period_time = 8e-6
+  []
+  [base_dt]
+    type = PiecewiseLinear
+    x = '0 1e-6 2e-6 4e-6 5e-6 6e-6 8e-6'
+    y = '1e-6 1e-6 2e-6 1e-6 1e-6 2e-6 1e-6'
+  []
+  [periodic_dt]
+    type = PeriodicFunction
+    base_function = base_dt
     period_time = 8e-6
   []
 []
@@ -169,8 +207,8 @@ l = 0.004
     type = FatigueHistoryVariable
     property_name = alpha_bar
     history_quantity = g_psie_active
-    start_from_zero = true
-    initial = alpha_bar_init
+    # start_from_zero = true
+    # initial = alpha_bar_init
     outputs = exodus
   []
   [fatigue_degradation]
@@ -178,6 +216,8 @@ l = 0.004
     property_name = f
     history_variable = alpha_bar
     crack_geometric_model = AT2
+    # start_from_one = true
+    # initial = f_init
     outputs = exodus
   []
 []
@@ -193,6 +233,10 @@ l = 0.004
     value_type = MAX
     execute_on = ' INITIAL TIMESTEP_END'
   []
+  [alpha_bar_avg]
+    type = ElementIntegralVariablePostprocessor
+    variable = alpha_bar_avg
+  []
 []
 
 [Executioner]
@@ -206,9 +250,15 @@ l = 0.004
   nl_rel_tol = 1e-8
   nl_abs_tol = 1e-10
 
-  dt = 1e-6
-  # end_time = 32e-6
-  end_time = 3.208e-3
+  # dt = 1e-6
+  [TimeStepper]
+    type = FunctionDT
+    function = periodic_dt
+  []
+  # start_time = 4e-6
+  # end_time = 16e-6  #provides the initial output for restart
+  end_time = 3.208e-3  #original complete simulation
+  # end_time = 40e-6
 
   fixed_point_max_its = 20
   accept_on_max_fixed_point_iteration = true
@@ -220,11 +270,12 @@ l = 0.004
   exodus = true
   # time_step_interval = 8
   print_linear_residuals = false
-  # file_base = './out_cyclicLoad/l${l}_h'
-  # file_base = './out/AT1_half_alpha/unload'
-  file_base = './out/AT2/original'
-  [out]
-    type = Checkpoint
-    time_step_interval = 2
-  []
+  checkpoint = true
+  # file_base = './out/AT2/irreversible'
+  file_base = './out/AT2/unload'
+  # [csv]
+  #   type = CSV
+  #   # file_base = './out/unload/outputs'
+  #   append_restart = true
+  # []
 []
